@@ -131,8 +131,6 @@ func Bind(paths []string, dstPath string, overwrite bool) error {
 		return err
 	}
 
-	fmt.Print(key)
-
 	var fileReader io.Reader
 	if firstHorcrux.GetHeader().Total == firstHorcrux.GetHeader().Threshold {
 		horcruxFiles := make([]*os.File, len(horcruxes))
