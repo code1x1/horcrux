@@ -15,6 +15,7 @@ type HorcruxHeader struct {
 	Total            int    `json:"total"`
 	Threshold        int    `json:"threshold"`
 	KeyFragment      []byte `json:"keyFragment"`
+	Signature        []byte `json:"signature"`
 }
 
 type Horcrux struct {

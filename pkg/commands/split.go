@@ -43,6 +43,12 @@ func Split(path string, destination string, total int, threshold int) error {
 	if err != nil {
 		return err
 	}
+
+	fileBytes, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+
 	originalFilename := filepath.Base(path)
 
 	// create destination directory if it does not already exist.
@@ -71,6 +77,7 @@ func Split(path string, destination string, total int, threshold int) error {
 			Total:            total,
 			KeyFragment:      keyFragments[i],
 			Threshold:        threshold,
+			Signature:        CreateMAC(fileBytes, key),
 		})
 		if err != nil {
 			return err

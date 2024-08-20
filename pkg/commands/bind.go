@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
@@ -119,14 +120,18 @@ func Bind(paths []string, dstPath string, overwrite bool) error {
 	}
 
 	keyFragments := make([][]byte, len(horcruxes))
-	for i := range keyFragments {
+	signatures := make([][]byte, len(horcruxes))
+	for i := range horcruxes {
 		keyFragments[i] = horcruxes[i].GetHeader().KeyFragment
+		signatures[i] = horcruxes[i].GetHeader().Signature
 	}
 
 	key, err := shamir.Combine(keyFragments)
 	if err != nil {
 		return err
 	}
+
+	fmt.Print(key)
 
 	var fileReader io.Reader
 	if firstHorcrux.GetHeader().Total == firstHorcrux.GetHeader().Threshold {
@@ -141,6 +146,11 @@ func Bind(paths []string, dstPath string, overwrite bool) error {
 	}
 
 	reader := cryptoReader(fileReader, key)
+	buf := &bytes.Buffer{}
+	teeFileReader := io.TeeReader(reader, buf)
+	if ok, i := ValidateHorcruxSignatures(teeFileReader, signatures, key); !ok {
+		return fmt.Errorf("horcrux %d has invalid signature", i)
+	}
 
 	_ = os.Truncate(dstPath, 0)
 
@@ -150,10 +160,24 @@ func Bind(paths []string, dstPath string, overwrite bool) error {
 	}
 	defer newFile.Close()
 
-	_, err = io.Copy(newFile, reader)
+	_, err = io.Copy(newFile, buf)
 	if err != nil {
 		return err
 	}
 
 	return err
+}
+
+func ValidateHorcruxSignatures(reader io.Reader, signatures [][]byte, key []byte) (bool, int) {
+	fileBytes, err := io.ReadAll(reader)
+	if err != nil {
+		return false, -1
+	}
+
+	for i := range signatures {
+		if !ValidateMAC(fileBytes, signatures[i], key) {
+			return false, i
+		}
+	}
+	return true, -1
 }

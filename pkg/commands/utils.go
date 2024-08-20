@@ -4,6 +4,8 @@ import (
 	"bufio"
 	"crypto/aes"
 	"crypto/cipher"
+	"crypto/hmac"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"os"
@@ -35,4 +37,15 @@ func Prompt(message string, args ...interface{}) string {
 	fmt.Printf(message, args...)
 	input, _ := reader.ReadString('\n')
 	return strings.TrimSpace(input)
+}
+
+func ValidateMAC(message, messageMAC, key []byte) bool {
+	expectedMAC := CreateMAC(message, key)
+	return hmac.Equal(messageMAC, expectedMAC)
+}
+
+func CreateMAC(message, key []byte) []byte {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(message)
+	return mac.Sum(nil)
 }
